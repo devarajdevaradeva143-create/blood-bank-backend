@@ -8,6 +8,7 @@ import Button from "../ui/Button";
 import DonationOtpDialog from "./DonationOtpDialog";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
+import { classifyOtpError } from "../../lib/otpErrors";
 import { submitDonationServer } from "../../services/donationStore";
 import {
   TN_DISTRICTS,
@@ -116,8 +117,7 @@ function SectionCard({ icon, title, children }) {
 }
 
 export default function DonationForm({ onSubmit, onCancel = () => {} }) {
-  const { t } = useLanguage();
-  const [form, setForm] = useState(INITIAL_FORM);
+  const { t } = useLanguage();  const [form, setForm] = useState(INITIAL_FORM);
   const [eligibility, setEligibility] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -127,6 +127,26 @@ export default function DonationForm({ onSubmit, onCancel = () => {} }) {
   const [otpError, setOtpError] = useState("");
   const [resending, setResending] = useState(false);
 
+  // Specific OTP error text (expired vs invalid vs cooldown) + redirect target.
+  const otpErrorText = (err, fallback) => {
+    const reason = classifyOtpError(err);
+    if (reason === "expired")
+      return "This code has expired. Please request a new one.";
+    if (reason === "cooldown")
+      return "Please wait a minute before requesting another code.";
+    if (reason === "network")
+      return "Unable to reach server. Please check your connection.";
+    if (err && err.message) return err.message;
+    return fallback;
+  };
+
+  const redirectTo = () => {
+    try {
+      return window.location.origin;
+    } catch {
+      return undefined;
+    }
+  };
   const today = localToday();
 
   const handleChange = (field, value) => {
@@ -213,15 +233,14 @@ export default function DonationForm({ onSubmit, onCancel = () => {} }) {
       }
       const { error } = await supabase.auth.signInWithOtp({
         email: String(form.email || "").trim().toLowerCase(),
+        options: { emailRedirectTo: redirectTo() },
       });
       if (error) throw error;
       setOtpError("");
       setOtpOpen(true);
     } catch (err) {
       // Real website: no offline fake success. Show the real error.
-      setFormError(
-        err && err.message ? err.message : "Could not send OTP. Please try again."
-      );
+      setFormError(otpErrorText(err, "Could not send OTP. Please try again."));
     } finally {
       setSubmitting(false);
     }
@@ -252,9 +271,7 @@ export default function DonationForm({ onSubmit, onCancel = () => {} }) {
       onSubmit({ ...form, eligibility, _server: serverRes || {} });
     } catch (err) {
       // Real website: offline must fail visibly, never fake-approved.
-      setOtpError(
-        err && err.message ? err.message : "Invalid OTP. Please try again."
-      );
+      setOtpError(otpErrorText(err, "Invalid OTP. Please try again."));
     } finally {
       setOtpVerifying(false);
     }
@@ -266,12 +283,11 @@ export default function DonationForm({ onSubmit, onCancel = () => {} }) {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email: String(form.email || "").trim().toLowerCase(),
+        options: { emailRedirectTo: redirectTo() },
       });
       if (error) throw error;
     } catch (err) {
-      setOtpError(
-        err && err.message ? err.message : "Could not resend OTP. Please try again."
-      );
+      setOtpError(otpErrorText(err, "Could not resend OTP. Please try again."));
     } finally {
       setResending(false);
     }

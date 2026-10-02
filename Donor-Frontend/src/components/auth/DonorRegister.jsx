@@ -19,6 +19,7 @@ import { useLanguage } from "../../i18n/LanguageContext";
 import { TN_DISTRICTS } from "../../data/constants";
 import { registerDonor } from "../../lib/api";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
+import { classifyOtpError } from "../../lib/otpErrors";
 import { saveLocalDonor } from "../../services/authApi";
 import {
   generateStrongPassword,
@@ -58,8 +59,13 @@ function DonorRegisterForm() {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  // Map Supabase Auth errors to UI messages (no technical leak to users).
+  // Map Supabase Auth errors to specific UI messages (no technical leak).
+  // expired vs invalid vs cooldown — "same error" confusion fix.
   const supabaseErrorMessage = (err) => {
+    const reason = classifyOtpError(err);
+    if (reason === "expired") return t("signup.otp.error.expired");
+    if (reason === "cooldown") return t("signup.otp.error.cooldown");
+    if (reason === "network") return t("signup.otp.error.network");
     const blob = `${err?.message || ""} ${err?.code || ""}`.toLowerCase();
     if (
       blob.includes("exists") ||
@@ -69,6 +75,16 @@ function DonorRegisterForm() {
       return t("signup.error.phoneExists");
     }
     return t("signup.otp.error");
+  };
+
+  // Magic-link redirect target — current origin (localhost dev / Pages prod).
+  // OTP-only template la link ye illa, aana backup safety ku correct URL pogum.
+  const redirectTo = () => {
+    try {
+      return window.location.origin;
+    } catch {
+      return undefined;
+    }
   };
 
   const [form, setForm] = useState({
@@ -179,6 +195,7 @@ function DonorRegisterForm() {
       const emailNorm = form.email.trim().toLowerCase();
       const { error: otpErr } = await supabase.auth.signInWithOtp({
         email: emailNorm,
+        options: { emailRedirectTo: redirectTo() },
       });
       if (otpErr) {
         setError(supabaseErrorMessage(otpErr));
@@ -252,6 +269,7 @@ function DonorRegisterForm() {
       // Supabase enforces resend cooldown server-side (default ~60s).
       const { error: resendErr } = await supabase.auth.signInWithOtp({
         email: form.email.trim().toLowerCase(),
+        options: { emailRedirectTo: redirectTo() },
       });
       if (resendErr) setOtpError(supabaseErrorMessage(resendErr));
     } catch (err) {

@@ -1,5 +1,14 @@
 import { clearAccessToken } from "../lib/api";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { classifyOtpError } from "../lib/otpErrors";
+
+function redirectTo() {
+  try {
+    return window.location.origin;
+  } catch {
+    return undefined;
+  }
+}
 
 const API_BASE =
   import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -102,14 +111,17 @@ export async function requestPasswordReset(email) {
   if (!isSupabaseConfigured()) return { ok: false, reason: "network" };
 
   try {
-    const { error } = await supabase.auth.signInWithOtp({ email: normalized });
+    const { error } = await supabase.auth.signInWithOtp({
+      email: normalized,
+      options: { emailRedirectTo: redirectTo() },
+    });
     if (error) {
-      const msg = String(error.message || "").toLowerCase();
-      if (msg.includes("rate") || msg.includes("too many") || error.status === 429)
-        return { ok: false, reason: "cooldown" };
+      const reason = classifyOtpError(error);
+      if (reason === "cooldown") return { ok: false, reason: "cooldown" };
       return { ok: false, reason: "network" };
     }
-  } catch {
+  } catch (err) {
+    classifyOtpError(err);
     return { ok: false, reason: "network" };
   }
   return { ok: true };
@@ -131,12 +143,15 @@ export async function resetPassword({ email, otp, newPassword }) {
       type: "email",
     });
     if (error) {
-      if (error.status === 429) return { ok: false, reason: "cooldown" };
+      const reason = classifyOtpError(error);
+      if (reason === "cooldown") return { ok: false, reason: "cooldown" };
+      if (reason === "expired") return { ok: false, reason: "otp_expired" };
       return { ok: false, reason: "otp_invalid" };
     }
     sessionToken = String(data?.session?.access_token || "").trim();
     if (!sessionToken) return { ok: false, reason: "otp_invalid" };
-  } catch {
+  } catch (err) {
+    classifyOtpError(err);
     return { ok: false, reason: "network" };
   }
 

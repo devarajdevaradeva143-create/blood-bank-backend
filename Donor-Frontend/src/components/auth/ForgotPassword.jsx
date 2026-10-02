@@ -126,6 +126,7 @@ export default function ForgotPassword({ email: initialEmail, onBack }) {
         } else if (res.reason === "network") {
           setError(t("login.forgot.error.network"));
         } else {
+          // otp_invalid + otp_expired — message already covers both.
           setError(t("login.forgot.error.otpInvalid"));
         }
         return;

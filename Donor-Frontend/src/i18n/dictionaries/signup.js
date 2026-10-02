@@ -148,28 +148,40 @@ export default {
   },
   "signup.login": { en: "Login", ta: "உள்நுழைய" },
   "signup.otp.title": {
-    en: "Verify your mobile",
-    ta: "உங்கள் கைபேசியை உறுதிசெய்யவும்",
+    en: "Verify your email",
+    ta: "உங்கள் மின்னஞ்சலை உறுதிசெய்யவும்",
   },
   "signup.otp.description": {
     en: "Enter the 6-digit code sent to",
     ta: "அனுப்பப்பட்ட 6 இலக்கக் குறியீட்டை உள்ளிடவும்",
   },
   "signup.otp.sent": {
-    en: "Code sent via SMS! Enter the 6-digit code — valid for 10 minutes.",
-    ta: "SMS மூலம் குறியீடு அனுப்பப்பட்டது! 6 இலக்கக் குறியீட்டை உள்ளிடவும் — 10 நிமிடங்கள் செல்லும்.",
+    en: "Code sent to your email! Enter the 6-digit code — valid for 10 minutes.",
+    ta: "மின்னஞ்சலுக்குக் குறியீடு அனுப்பப்பட்டது! 6 இலக்கக் குறியீட்டை உள்ளிடவும் — 10 நிமிடங்கள் செல்லும்.",
   },
   "signup.otp.error": {
     en: "Could not verify the code. Please try again.",
     ta: "குறியீட்டைச் சரிபார்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.",
   },
+  "signup.otp.error.expired": {
+    en: "This code has expired. Please request a new one.",
+    ta: "இந்தக் குறியீடு காலாவதியாகிவிட்டது. புதிய குறியீட்டைக் கோரவும்.",
+  },
+  "signup.otp.error.cooldown": {
+    en: "Please wait a minute before requesting another code.",
+    ta: "மற்றொரு குறியீட்டைக் கோருவதற்கு முன் ஒரு நிமிடம் காத்திருக்கவும்.",
+  },
+  "signup.otp.error.network": {
+    en: "Unable to reach server. Please check your connection.",
+    ta: "சேவையகத்தை அணுக முடியவில்லை. இணைப்பைச் சரிபார்க்கவும்.",
+  },
   "signup.otp.notConfigured": {
-    en: "Phone verification is not configured yet. Please try again later.",
-    ta: "கைபேசி சரிபார்ப்பு இன்னும் அமைக்கப்படவில்லை. பின்னர் முயற்சிக்கவும்.",
+    en: "Email verification is not configured yet. Please try again later.",
+    ta: "மின்னஞ்சல் சரிபார்ப்பு இன்னும் அமைக்கப்படவில்லை. பின்னர் முயற்சிக்கவும்.",
   },
   "signup.error.phoneExists": {
-    en: "This mobile number is already registered. Please login instead.",
-    ta: "இந்த கைபேசி எண் ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது. உள்நுழையவும்.",
+    en: "An account with these details already exists. Please login instead.",
+    ta: "இந்த விவரங்களுடன் கணக்கு ஏற்கனவே உள்ளது. உள்நுழையவும்.",
   },
   "signup.badge": {
     en: "New Donor Registration",
