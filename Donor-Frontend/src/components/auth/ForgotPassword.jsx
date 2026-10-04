@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   Eye,
   EyeOff,
-  KeyRound,
   Loader2,
   Lock,
   Mail,
@@ -16,6 +15,7 @@ import {
   getPasswordStrength,
 } from "../../utils/passwordStrength";
 import { requestPasswordReset, resetPassword } from "../../services/authApi";
+import OtpBoxes from "../ui/OtpBoxes";
 
 export default function ForgotPassword({ email: initialEmail, onBack }) {
   const { t } = useLanguage();
@@ -194,23 +194,17 @@ export default function ForgotPassword({ email: initialEmail, onBack }) {
         </form>
       ) : (
         <form onSubmit={handleReset}>
-          {/* OTP */}
+          {/* OTP — 6 boxes, manual verify via Reset button (register mattum auto) */}
           <div className={s["form-group"]}>
-            <label htmlFor="forgot-otp">{t("login.forgot.otp")}</label>
-            <div className={s["input-wrapper"]}>
-              <span className={s["input-icon"]}>
-                <KeyRound />
-              </span>
-              <input
-                id="forgot-otp"
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                placeholder={t("login.forgot.otpPlaceholder")}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-              />
-            </div>
+            <label htmlFor="forgot-otp-1">{t("login.forgot.otp")}</label>
+            <OtpBoxes
+              value={otp}
+              onChange={(v) => setOtp(v)}
+              length={6}
+              disabled={loading}
+              error={Boolean(error)}
+              idPrefix="forgot-otp"
+            />
           </div>
 
           {/* NEW PASSWORD */}

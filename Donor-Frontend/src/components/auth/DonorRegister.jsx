@@ -17,8 +17,9 @@ import ls from "./DonorLogin.module.css";
 import DonationOtpDialog from "../donate/DonationOtpDialog";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { TN_DISTRICTS } from "../../data/constants";
-import { registerDonor } from "../../lib/api";
-import { supabase, isSupabaseConfigured } from "../../lib/supabase";
+import { registerDonor, requestRegisterOtp } from "../../lib/api";
+// SUPABASE-PENDING: paused, kept for later resume.
+// import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import { classifyOtpError } from "../../lib/otpErrors";
 import { saveLocalDonor } from "../../services/authApi";
 import {
@@ -77,6 +78,22 @@ function DonorRegisterForm() {
     return t("signup.otp.error");
   };
 
+  // Backend OTP error mappers (primary). Supabase mapper above kept for resume.
+  const backendOtpError = (err) => {
+    const msg = String(err?.message || "");
+    if (/Too many|wait \d+s|429/i.test(msg)) return t("signup.otp.error.cooldown");
+    if (/expir/i.test(msg)) return t("signup.otp.error.expired");
+    if (/already exists/i.test(msg)) return t("signup.error.phoneExists");
+    if (/Unable to reach server|Failed to fetch|Network/i.test(msg)) return t("signup.otp.error.network");
+    return msg || t("signup.otp.error");
+  };
+  const backendRegisterError = (err) => {
+    const msg = String(err?.message || "");
+    if (/already exists/i.test(msg)) return t("signup.error.phoneExists");
+    if (/Too many|wait \d+s|429/i.test(msg)) return t("signup.otp.error.cooldown");
+    if (/Unable to reach server|Failed to fetch|Network/i.test(msg)) return t("signup.otp.error.network");
+    return msg || t("signup.otp.error");
+  };
   // Magic-link redirect target — current origin (localhost dev / Pages prod).
   // OTP-only template la link ye illa, aana backup safety ku correct URL pogum.
   const redirectTo = () => {
@@ -184,31 +201,22 @@ function DonorRegisterForm() {
     }
 
     setLoading(true);
-    // Supabase-only Email OTP (register): send a 6-digit code to the email,
-    // then verify it in the dialog (see handleVerifyOtp).
-    // No Clerk / SMS — Supabase Auth handles delivery.
+    // Backend Gmail OTP (primary — SUPABASE-PENDING: supabase block below kept for resume).
     try {
-      if (!isSupabaseConfigured()) {
-        setError(t("signup.otp.notConfigured"));
-        return;
-      }
       const emailNorm = form.email.trim().toLowerCase();
-      const { error: otpErr } = await supabase.auth.signInWithOtp({
-        email: emailNorm,
-        options: { emailRedirectTo: redirectTo() },
-      });
-      if (otpErr) {
-        setError(supabaseErrorMessage(otpErr));
-        return;
-      }
+      await requestRegisterOtp(emailNorm);
       setOtpError("");
       setError("");
       setOtpOpen(true);
     } catch (err) {
-      setError(supabaseErrorMessage(err));
+      setError(backendRegisterError(err));
     } finally {
       setLoading(false);
     }
+    // SUPABASE-PENDING (old flow):
+    // if (!isSupabaseConfigured()) { setError(t("signup.otp.notConfigured")); return; }
+    // const { error: otpErr } = await supabase.auth.signInWithOtp({ email: emailNorm, options: { emailRedirectTo: redirectTo() } });
+    // if (otpErr) { setError(supabaseErrorMessage(otpErr)); return; }
   };
 
   const buildPayload = () => ({
@@ -227,24 +235,10 @@ function DonorRegisterForm() {
     setOtpError("");
     setOtpVerifying(true);
     try {
-      // Verify the Email OTP with Supabase, then hand the session
-      // access_token to our backend (it matches the verified email).
-      const emailNorm = form.email.trim().toLowerCase();
-      const { data, error: verifyErr } = await supabase.auth.verifyOtp({
-        email: emailNorm,
-        token: String(code).trim(),
-        type: "email",
-      });
-      if (verifyErr) {
-        setOtpError(supabaseErrorMessage(verifyErr));
-        return;
-      }
-      const token = data?.session?.access_token || "";
-      if (!token) {
-        setOtpError(t("signup.otp.error"));
-        return;
-      }
-      const data2 = await registerDonor(buildPayload(), token);
+      // Backend Gmail OTP verify (primary). Code goes straight to backend.
+      // SUPABASE-PENDING: supabase verify block kept below for resume.
+      const data2 = await registerDonor(buildPayload(), String(code).trim());
+      // SUPABASE-PENDING (old): const { data, error: verifyErr } = await supabase.auth.verifyOtp({ email: emailNorm, token: String(code).trim(), type: "email" });
       if (data2?.donor) saveLocalDonor(data2.donor);
       setOtpOpen(false);
       setSuccess(t("signup.success"));
@@ -256,24 +250,22 @@ function DonorRegisterForm() {
         });
       }, 1200);
     } catch (err) {
-      setOtpError(supabaseErrorMessage(err));
+      setOtpError(backendOtpError(err));
     } finally {
       setOtpVerifying(false);
     }
+    // SUPABASE-PENDING: setOtpError(supabaseErrorMessage(err));
   };
 
   const handleResendOtp = async () => {
     setOtpError("");
     setOtpResending(true);
     try {
-      // Supabase enforces resend cooldown server-side (default ~60s).
-      const { error: resendErr } = await supabase.auth.signInWithOtp({
-        email: form.email.trim().toLowerCase(),
-        options: { emailRedirectTo: redirectTo() },
-      });
-      if (resendErr) setOtpError(supabaseErrorMessage(resendErr));
+      // Backend resend (primary). Cooldown 60s enforced server-side.
+      // SUPABASE-PENDING: supabase resend kept below.
+      await requestRegisterOtp(form.email.trim().toLowerCase());
     } catch (err) {
-      setOtpError(supabaseErrorMessage(err));
+      setOtpError(backendOtpError(err));
     } finally {
       setOtpResending(false);
     }
@@ -604,6 +596,7 @@ function DonorRegisterForm() {
         verifying={otpVerifying}
         resending={otpResending}
         error={otpError}
+        autoSubmit
         onVerify={handleVerifyOtp}
         onResend={handleResendOtp}
         onClose={() => {
@@ -615,19 +608,7 @@ function DonorRegisterForm() {
 }
 
 export default function DonorRegister() {
-  const { t } = useLanguage();
-  // Supabase Email OTP only — without keys the form cannot verify
-  // emails, so show a notice instead of crashing. Rest of app works.
-  if (!isSupabaseConfigured()) {
-    return (
-      <div className={`${ls["login-page"]} ${s["register-page"]}`}>
-        <div className={ls["login-section"]}>
-          <div className={ls["login-card"]}>
-            <p role="alert">{t("signup.otp.notConfigured")}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Backend Gmail OTP primary — Supabase gate paused (SUPABASE-PENDING resume later).
+  // SUPABASE-PENDING (old gate): if (!isSupabaseConfigured()) return notConfigured notice.
   return <DonorRegisterForm />;
 }

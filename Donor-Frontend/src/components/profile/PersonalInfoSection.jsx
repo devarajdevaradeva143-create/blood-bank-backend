@@ -102,7 +102,6 @@ export default function PersonalInfoSection({
           onChange={handleChange("address")}
           error={errors.address}
           disabled={!editing}
-          required
           placeholder={t("profile.placeholder.address")}
         />
         {/* District — user edit pannalam */}

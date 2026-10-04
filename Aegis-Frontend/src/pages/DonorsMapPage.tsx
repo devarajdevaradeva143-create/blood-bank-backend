@@ -82,6 +82,7 @@ interface DonorMapPaneProps {
   center: [number, number];
   height: string;
   isFullscreen: boolean;
+  onUseOsm?: () => void;
 }
 
 /** OSM (Leaflet) pane — original map, untouched behaviour. */
@@ -142,9 +143,9 @@ function OsmDonorMap({
 }
 
 /** Provider switch — OSM default, Google lazy-loads only when selected. */
-function DonorMapPane({ provider, ...rest }: DonorMapPaneProps) {
+function DonorMapPane({ provider, onUseOsm, ...rest }: DonorMapPaneProps) {
   if (provider === 'google') {
-    return <DonorGoogleMapLazy {...rest} />;
+    return <DonorGoogleMapLazy {...rest} onUseOsm={onUseOsm} />;
   }
   return <OsmDonorMap {...rest} />;
 }
@@ -168,6 +169,7 @@ function DonorGoogleMapLazy(props: Omit<DonorMapPaneProps, 'provider' | 'isFulls
         center={props.center}
         groupColors={GROUP_COLORS}
         height={props.height}
+        onUseOsm={props.onUseOsm}
       />
     </Suspense>
   );
@@ -406,6 +408,7 @@ export default function DonorsMapPage() {
                 center={center}
                 height="calc(100dvh - 160px)"
                 isFullscreen={isFullscreen}
+                onUseOsm={() => switchProvider('osm')}
               />
             )}
           </Card>
@@ -438,6 +441,7 @@ export default function DonorsMapPage() {
               center={center}
               height="480"
               isFullscreen={isFullscreen}
+              onUseOsm={() => switchProvider('osm')}
             />
           )}
         </Card>

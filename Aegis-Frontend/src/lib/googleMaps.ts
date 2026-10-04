@@ -1,8 +1,9 @@
 // Shared Google Maps helpers — key comes from .env (user-managed), never hardcoded.
-export const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
+const _rawKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
+export const GOOGLE_MAPS_KEY = _rawKey?.trim() ? _rawKey.trim() : '';
 
 export function hasGoogleMapsKey(): boolean {
-  return Boolean(GOOGLE_MAPS_KEY && GOOGLE_MAPS_KEY.trim().length > 0);
+  return GOOGLE_MAPS_KEY.length > 0;
 }
 
 export const MAP_PROVIDER_KEY = 'aegis-map-provider';

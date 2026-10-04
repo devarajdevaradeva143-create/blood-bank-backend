@@ -390,6 +390,7 @@ export const en = {
   'donorMap.googleLoading': 'Loading Google Maps…',
   'donorMap.keyMissingTitle': 'Google Maps not configured',
   'donorMap.keyMissing': 'Add VITE_GOOGLE_MAPS_KEY to .env, or switch back to OSM.',
+  'donorMap.useOsm': 'Switch to OSM',
 
   'donations.title': 'Donate Requests',
   'donations.subtitle': 'Donor intents for your district',
@@ -1058,6 +1059,7 @@ export const ta: Record<TranslationKey, string> = {
   'donorMap.googleLoading': 'Google Maps ஏற்றப்படுகிறது…',
   'donorMap.keyMissingTitle': 'Google Maps அமைக்கப்படவில்லை',
   'donorMap.keyMissing': '.env-ல் VITE_GOOGLE_MAPS_KEY சேர்க்கவும், அல்லது OSM-க்கு மாறவும்.',
+  'donorMap.useOsm': 'OSM-க்கு மாறு',
 
   'donations.title': 'தான கோரிக்கைகள்',
   'donations.subtitle': 'உங்கள் மாவட்டத்திற்கான நன்கொடை விருப்பங்கள்',

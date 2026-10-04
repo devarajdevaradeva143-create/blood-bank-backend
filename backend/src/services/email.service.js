@@ -1,10 +1,11 @@
 // backend/src/services/email.service.js
-// Free Email OTP via Gmail SMTP (Nodemailer) — donor forgot-password ku.
+// Free Email OTP via Gmail SMTP (Nodemailer) — donor forgot + register ku.
 // Env (Render dashboard / local .env — never commit secrets):
 //   EMAIL_USER=you@gmail.com (Gmail address, 2-step ON)
 //   EMAIL_PASS=xxxx xxxx xxxx xxxx (Gmail App Password, 16 letters)
 //   EMAIL_FROM=Life Saver <you@gmail.com> (optional display name)
-// No DLT / paid gateway needed. Gmail ~500 mails/day — donor reset ku podhum.
+// No DLT / paid gateway needed. Gmail ~500 mails/day — donor reset/register ku podhum.
+// NOTE: Supabase Email OTP ippo pause (SUPABASE-PENDING) — backend Gmail dhaan primary.
 import nodemailer from 'nodemailer';
 import { config } from '../config/env.js';
 
@@ -57,4 +58,15 @@ export async function sendDonorOtpEmail(email, code) {
   return sendEmail({ to: email, subject, text, html });
 }
 
-export default { sendEmail, sendDonorOtpEmail, isEmailConfigured };
+/** Donor registration OTP mail — backend primary (Supabase pause). */
+export async function sendRegisterOtpEmail(email, code) {
+  const ttl = Number(config.otp?.ttlMinutes || 5);
+  const subject = 'Life Saver — Registration OTP';
+  const text = `Your Life Saver registration OTP is: ${code}\nValid ${ttl} mins. Share pannadha.`;
+  const html =
+    `<p>Your Life Saver registration OTP is: <b style="font-size:20px;letter-spacing:4px">${code}</b></p>` +
+    `<p>Valid ${ttl} mins. Share pannadha.</p>`;
+  return sendEmail({ to: email, subject, text, html });
+}
+
+export default { sendEmail, sendDonorOtpEmail, sendRegisterOtpEmail, isEmailConfigured };

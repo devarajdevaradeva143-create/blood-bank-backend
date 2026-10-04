@@ -6,6 +6,12 @@ const PROVIDER_KEY = 'tnbb-map-provider'
 export const OFFICE_CENTER = { lat: 13.081, lng: 80.2694 }
 export const OFFICE_ZOOM = 15
 
+export function getGoogleMapsKey() {
+  const raw = import.meta.env.VITE_GOOGLE_MAPS_KEY
+  const key = String(raw ?? '').trim()
+  return key.length > 0 ? key : ''
+}
+
 export function storedMapProvider() {
   try {
     return localStorage.getItem(PROVIDER_KEY) === 'google' ? 'google' : 'osm'

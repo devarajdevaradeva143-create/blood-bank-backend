@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { KeyRound, Loader2, X } from "lucide-react";
 import Button from "../ui/Button";
+import OtpBoxes from "../ui/OtpBoxes";
 
 export default function DonationOtpDialog({
   open,
@@ -11,6 +12,7 @@ export default function DonationOtpDialog({
   verifying = false,
   resending = false,
   error = "",
+  autoSubmit = false,
   onVerify,
   onResend,
   onClose,
@@ -18,6 +20,7 @@ export default function DonationOtpDialog({
   const [code, setCode] = useState("");
   const [localError, setLocalError] = useState("");
   const [wasOpen, setWasOpen] = useState(open);
+  const autoFiredRef = useRef("");
 
   // Reset the code field each time the dialog is (re)opened.
   if (open !== wasOpen) {
@@ -25,8 +28,18 @@ export default function DonationOtpDialog({
     if (open) {
       setCode("");
       setLocalError("");
+      autoFiredRef.current = "";
     }
   }
+
+  // Register OTP: 6 digits type panna odane auto verify (donate/others need button).
+  useEffect(() => {
+    if (autoSubmit && open && !verifying && /^\d{6}$/.test(code) && autoFiredRef.current !== code) {
+      autoFiredRef.current = code;
+      setLocalError("");
+      onVerify(code);
+    }
+  }, [autoSubmit, open, verifying, code, onVerify]);
 
   if (!open) return null;
 
@@ -42,6 +55,7 @@ export default function DonationOtpDialog({
       return;
     }
     setLocalError("");
+    autoFiredRef.current = trimmed;
     onVerify(trimmed);
   };
 
@@ -50,12 +64,12 @@ export default function DonationOtpDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="donation-otp-title"
     >
-      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900 sm:p-8">
+      <div className="my-auto max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900 sm:p-8">
         <div className="flex items-start justify-between gap-4">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
             <KeyRound className="h-5 w-5" />
@@ -92,30 +106,23 @@ export default function DonationOtpDialog({
 
         <form onSubmit={handleSubmit} className="mt-5">
           <label
-            htmlFor="donation-otp"
+            htmlFor="donation-otp-1"
             className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-slate-300"
           >
             6-digit OTP
           </label>
-          <input
-            id="donation-otp"
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
+          <OtpBoxes
             value={code}
-            onChange={(e) =>
-              setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-            }
-            placeholder="Enter 6-digit OTP"
+            onChange={(v) => {
+              setCode(v);
+              setLocalError("");
+            }}
+            length={6}
             disabled={verifying}
-            aria-invalid={shownError ? "true" : undefined}
-            className={`block h-12 w-full rounded-lg border bg-white px-3.5 text-center text-lg font-bold tracking-[0.5em] text-gray-900 shadow-sm outline-none transition-colors focus:ring-2 disabled:cursor-not-allowed disabled:bg-gray-100 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 ${
-              shownError
-                ? "border-red-400 focus:border-red-500 focus:ring-red-200 dark:border-red-500 dark:focus:ring-red-900/60"
-                : "border-gray-300 focus:border-red-500 focus:ring-red-200 dark:border-slate-700 dark:focus:border-brand-500 dark:focus:ring-brand-900/60"
-            }`}
+            error={Boolean(shownError)}
+            idPrefix="donation-otp"
           />
+          <input type="hidden" autoComplete="one-time-code" value={code} readOnly aria-hidden="true" tabIndex={-1} className="hidden" />
           {shownError && (
             <p
               role="alert"
@@ -125,12 +132,12 @@ export default function DonationOtpDialog({
             </p>
           )}
 
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <Button
               type="submit"
               variant="primary"
               disabled={verifying || code.trim().length !== 6}
-              className="flex-1 px-4 py-2.5"
+              className="w-full px-4 py-2.5 sm:w-auto sm:flex-1"
             >
               {verifying && <Loader2 className="h-4 w-4 animate-spin" />}
               {verifying ? "Verifying..." : "Verify & Submit"}
@@ -140,7 +147,7 @@ export default function DonationOtpDialog({
               variant="outline"
               onClick={onResend}
               disabled={verifying || resending}
-              className="px-4 py-2.5"
+              className="w-full px-4 py-2.5 sm:w-auto"
             >
               {resending && <Loader2 className="h-4 w-4 animate-spin" />}
               {resending ? "Sending..." : "Resend OTP"}

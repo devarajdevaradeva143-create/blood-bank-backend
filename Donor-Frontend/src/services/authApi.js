@@ -1,6 +1,7 @@
 import { clearAccessToken } from "../lib/api";
-import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import { classifyOtpError } from "../lib/otpErrors";
+// SUPABASE-PENDING: kept for later resume — backend Gmail OTP is primary now.
+// import { supabase, isSupabaseConfigured } from "../lib/supabase";
+// import { classifyOtpError } from "../lib/otpErrors";
 
 function redirectTo() {
   try {
@@ -100,83 +101,63 @@ export function saveLocalDonor(user) {
   return merged;
 }
 
-// Supabase-only OTP flow (Option A: JWT stays, OTP via Supabase Email OTP).
-// The code is sent + verified by Supabase Auth — our backend never sees it,
-// it only verifies the resulting session access_token via service_role.
+// Backend Gmail OTP flow (Supabase paused — SUPABASE-PENDING resume later).
+// Backend creates OTP + sends Gmail. Frontend only calls backend.
 export async function requestPasswordReset(email) {
   const normalized = String(email || "").trim().toLowerCase();
-
-  // Local UX guard (Supabase always returns generic-ish errors too).
-  if (!isLocalAccount(normalized)) return { ok: false, reason: "not_found" };
-  if (!isSupabaseConfigured()) return { ok: false, reason: "network" };
-
+  if (!normalized) return { ok: false, reason: "not_found" };
+  let res;
   try {
-    const { error } = await supabase.auth.signInWithOtp({
-      email: normalized,
-      options: { emailRedirectTo: redirectTo() },
-    });
-    if (error) {
-      const reason = classifyOtpError(error);
-      if (reason === "cooldown") return { ok: false, reason: "cooldown" };
-      return { ok: false, reason: "network" };
-    }
-  } catch (err) {
-    classifyOtpError(err);
+    res = await postJson("/api/donors/forgot-password", { email: normalized });
+  } catch {
     return { ok: false, reason: "network" };
   }
+  if (res.ok) return { ok: true };
+  if (res.status === 429) return { ok: false, reason: "cooldown" };
+  if (res.status >= 500) return { ok: false, reason: "network" };
+  // Backend is generic-safe (always 200) — non-200 here is rate-limit/network.
   return { ok: true };
+  // SUPABASE-PENDING (old flow, kept for resume):
+  // if (!isLocalAccount(normalized)) return { ok: false, reason: "not_found" };
+  // if (!isSupabaseConfigured()) return { ok: false, reason: "network" };
+  // const { error } = await supabase.auth.signInWithOtp({ email: normalized, options: { emailRedirectTo: redirectTo() } });
+  // if (error) { const reason = classifyOtpError(error); if (reason === "cooldown") return { ok: false, reason: "cooldown" }; return { ok: false, reason: "network" }; }
+  // return { ok: true };
 }
 
-// Verifies Email OTP with Supabase, then stores the new bcrypt hash via backend.
-// Backend verifies the Supabase session (email match) — login then checks backend JWT.
+// Verifies backend Gmail OTP code, then stores the new bcrypt hash via backend.
+// SUPABASE-PENDING: supabase verify block commented below for later resume.
 export async function resetPassword({ email, otp, newPassword }) {
   const normalized = String(email || "").trim().toLowerCase();
   const code = String(otp || "").trim();
-
-  if (!isSupabaseConfigured()) return { ok: false, reason: "network" };
-
-  let sessionToken = "";
-  try {
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: normalized,
-      token: code,
-      type: "email",
-    });
-    if (error) {
-      const reason = classifyOtpError(error);
-      if (reason === "cooldown") return { ok: false, reason: "cooldown" };
-      if (reason === "expired") return { ok: false, reason: "otp_expired" };
-      return { ok: false, reason: "otp_invalid" };
-    }
-    sessionToken = String(data?.session?.access_token || "").trim();
-    if (!sessionToken) return { ok: false, reason: "otp_invalid" };
-  } catch (err) {
-    classifyOtpError(err);
-    return { ok: false, reason: "network" };
-  }
-
+  if (!/^\d{6}$/.test(code)) return { ok: false, reason: "otp_invalid" };
   let res;
   try {
     res = await postJson("/api/donors/reset-password", {
       email: normalized,
-      supabaseAccessToken: sessionToken,
+      code,
       newPassword,
     });
   } catch {
     return { ok: false, reason: "network" };
   }
-
-  if (!res.ok) {
-    if (res.status === 429) return { ok: false, reason: "cooldown" };
-    return { ok: false, reason: "otp_invalid" };
+  if (res.ok) {
+    clearAccessToken();
+    return { ok: true };
   }
-
-  // Any session opened with the old password is now dead.
-  clearAccessToken();
-  try {
-    await supabase.auth.signOut();
-  } catch {
-    // ignore — Supabase OTP session is one-time anyway
-  }
-  return { ok: true };
+  if (res.status === 429) return { ok: false, reason: "cooldown" };
+  const msg = String(res.data?.message || "").toLowerCase();
+  if (msg.includes("expire")) return { ok: false, reason: "otp_expired" };
+  return { ok: false, reason: "otp_invalid" };
+  // SUPABASE-PENDING (old flow):
+  // if (!isSupabaseConfigured()) return { ok: false, reason: "network" };
+  // const { data, error } = await supabase.auth.verifyOtp({ email: normalized, token: code, type: "email" });
+  // if (error) { const reason = classifyOtpError(error); if (reason === "cooldown") return { ok: false, reason: "cooldown" }; if (reason === "expired") return { ok: false, reason: "otp_expired" }; return { ok: false, reason: "otp_invalid" }; }
+  // const sessionToken = String(data?.session?.access_token || "").trim();
+  // if (!sessionToken) return { ok: false, reason: "otp_invalid" };
+  // res = await postJson("/api/donors/reset-password", { email: normalized, supabaseAccessToken: sessionToken, newPassword });
+  // if (!res.ok) { if (res.status === 429) return { ok: false, reason: "cooldown" }; return { ok: false, reason: "otp_invalid" }; }
+  // clearAccessToken();
+  // try { await supabase.auth.signOut(); } catch {}
+  // return { ok: true };
 }

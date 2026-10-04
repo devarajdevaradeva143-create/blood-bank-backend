@@ -128,18 +128,23 @@ export function requestOtp(mobile) {
  * Backend matches the verified email to payload.email (JWT stays ours).
  * Legacy: clerkToken still accepted during transition (deprecated).
  */
-export function registerDonor(payload, supabaseAccessTokenOrClerkToken) {
-  const token = String(supabaseAccessTokenOrClerkToken || "").trim();
-  // Heuristic: Supabase JWTs are long (3 dot-parts); keep key name explicit.
-  const isSupabase = token.split(".").length === 3 || token.length > 200;
+export function registerDonor(payload, codeOrToken) {
+  const v = String(codeOrToken || "").trim();
   return req("/api/donors", {
     method: "POST",
-    body: {
-      ...payload,
-      ...(isSupabase ? { supabaseAccessToken: token } : { clerkToken: token }),
-    },
+    body: { ...payload, code: v },
   });
 }
+
+export function requestRegisterOtp(email) {
+  return req("/api/donors/request-register-otp", {
+    method: "POST",
+    body: { email: String(email || "").trim().toLowerCase() },
+  });
+}
+// SUPABASE-PENDING (old supabase heuristic, kept for resume):
+// const isSupabase = v.split(".").length === 3 || v.length > 200;
+// if (isSupabase) return req("/api/donors", { method: "POST", body: { ...payload, supabaseAccessToken: v } });
 
 export async function loginDonor(email, password) {
   const data = await req("/api/donors/login", {

@@ -290,7 +290,7 @@ export default function ContactPage() {
                   </div>
                 }
               >
-                <ContactMap heightClass="h-64" />
+                <ContactMap heightClass="h-64" onUseOsm={() => switchMapProvider('osm')} />
               </Suspense>
             ) : (
               <iframe
@@ -329,7 +329,7 @@ export default function ContactPage() {
                   </div>
                 }
               >
-                <ContactMap heightClass="h-[calc(100dvh-160px)]" />
+                <ContactMap heightClass="h-[calc(100dvh-160px)]" onUseOsm={() => switchMapProvider('osm')} />
               </Suspense>
             ) : (
               <iframe

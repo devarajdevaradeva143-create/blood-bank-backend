@@ -165,7 +165,9 @@ export default function ProfilePage() {
   };
 
   const validate = () => {
-    // Editable 4 fields mattum validate pannu — read-only fields block panna koodadhu.
+    // Editable 3 fields mattum validate pannu — address optional
+    // (register-la collect pannala; demo/test address-a delete panna empty allow).
+    // Read-only fields block panna koodadhu.
     const newErrors = {};
     if (
       !String(donor.email || "").trim() ||
@@ -178,8 +180,6 @@ export default function ProfilePage() {
     )
       newErrors.phone = t("profile.validation.phone");
     if (!donor.district) newErrors.district = t("profile.validation.district");
-    if (!String(donor.address || "").trim())
-      newErrors.address = t("profile.validation.address");
     return newErrors;
   };
 

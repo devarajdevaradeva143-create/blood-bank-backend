@@ -1,17 +1,14 @@
 .login-page {
   height: 100vh;
   height: 100dvh;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
+  align-items: stretch;
   background: #f8fafc;
   font-family: Inter, Arial, Helvetica, sans-serif;
-  /* inner scroll mattum — page scrollbar venam */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.login-page::-webkit-scrollbar {
-  display: none;
+  /* full-page joint scroll — left blood-bank panel + right form serthu scroll aagum
+     (mobile maari; body overflow-hidden-a irukkurathala page-level scroll inga) */
 }
 
 :global(.dark) .login-page {
@@ -22,8 +19,8 @@
 
 .login-info {
   width: 48%;
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   padding: 45px 70px 40px;
   position: relative;
   overflow: hidden;
@@ -344,21 +341,13 @@
 
 .login-section {
   width: 52%;
-  height: 100vh;
-  height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 40px;
   background: #f8fafc;
-}
-
-.login-section::-webkit-scrollbar {
-  display: none;
 }
 
 :global(.dark) .login-section {
@@ -813,7 +802,8 @@
 @media (max-width: 900px) {
   .login-page {
     flex-direction: column;
-    height: auto;
+    height: 100vh;
+    height: 100dvh;
     min-height: 100vh;
     min-height: 100dvh;
     overflow-y: auto;
@@ -823,15 +813,17 @@
   .login-info {
     width: 100%;
     min-height: auto;
-    padding: 35px 30px;
+    flex-shrink: 0;
+    padding: 28px 24px 24px;
   }
 
   .login-section {
     width: 100%;
     height: auto;
     min-height: auto;
+    flex-shrink: 0;
     overflow: visible;
-    padding: 30px 20px;
+    padding: 24px 20px 32px;
   }
 
   .blood-illustration {
@@ -839,17 +831,51 @@
   }
 
   .info-content {
-    margin-top: 45px;
+    margin-top: 20px;
   }
 
   .info-content h2 {
     font-size: 25px;
   }
+
+  .info-description {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .benefits {
+    margin-top: 18px;
+    gap: 10px;
+  }
+
+  .benefit {
+    padding: 10px 12px;
+    gap: 12px;
+  }
+
+  .benefit-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .benefit-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .benefit h3 {
+    font-size: 14px;
+  }
+
+  .benefit p {
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
 }
 
 @media (max-width: 500px) {
   .login-info {
-    padding: 25px 20px;
+    padding: 22px 18px 20px;
   }
 
   .brand h1 {
@@ -861,7 +887,25 @@
   }
 
   .info-content {
-    margin-top: 35px;
+    margin-top: 16px;
+  }
+
+  .benefits {
+    margin-top: 14px;
+    gap: 8px;
+  }
+
+  .benefit {
+    padding: 9px 11px;
+    gap: 11px;
+  }
+
+  .benefit p {
+    display: none;
+  }
+
+  .benefit h3 {
+    margin: 0;
   }
 
   .login-section {

@@ -14,9 +14,28 @@ interface DonorGoogleMapProps {
   center: [number, number];
   groupColors: Record<string, string>;
   height: string;
+  onUseOsm?: () => void;
 }
 
-export default function DonorGoogleMap({
+function MissingKeyPane({ onUseOsm }: { onUseOsm?: () => void }) {
+  const { t } = useI18n();
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-12">
+      <EmptyState title={t('donorMap.keyMissingTitle')} hint={t('donorMap.keyMissing')} />
+      {onUseOsm ? (
+        <button
+          type="button"
+          onClick={onUseOsm}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-red-300 hover:text-red-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+        >
+          {t('donorMap.useOsm')}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function DonorGoogleMapInner({
   donors,
   tripStops,
   selected,
@@ -24,6 +43,7 @@ export default function DonorGoogleMap({
   center,
   groupColors,
   height,
+  onUseOsm,
 }: DonorGoogleMapProps) {
   const { t } = useI18n();
   const { isLoaded, loadError } = useJsApiLoader({
@@ -39,18 +59,19 @@ export default function DonorGoogleMap({
     }
   }, [center]);
 
-  if (!hasGoogleMapsKey()) {
-    return (
-      <div className="px-6 py-12">
-        <EmptyState title={t('donorMap.keyMissingTitle')} hint={t('donorMap.keyMissing')} />
-      </div>
-    );
-  }
-
   if (loadError) {
     return (
-      <div className="px-6 py-12">
+      <div className="flex flex-col items-center gap-3 px-6 py-12">
         <EmptyState title={t('donors.error')} hint={String(loadError.message || loadError)} />
+        {onUseOsm ? (
+          <button
+            type="button"
+            onClick={onUseOsm}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-red-300 hover:text-red-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+          >
+            {t('donorMap.useOsm')}
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -119,4 +140,12 @@ export default function DonorGoogleMap({
       ) : null}
     </GoogleMap>
   );
+}
+
+export default function DonorGoogleMap(props: DonorGoogleMapProps) {
+  // Key illana Google script-a load pannave vendaam — OSM-ku switch sollu.
+  if (!hasGoogleMapsKey()) {
+    return <MissingKeyPane onUseOsm={props.onUseOsm} />;
+  }
+  return <DonorGoogleMapInner {...props} />;
 }

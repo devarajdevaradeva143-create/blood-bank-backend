@@ -26,10 +26,14 @@ import {
   isOnCooldown,
   otpExpiryDate,
 } from '../utils/otp.js';
-import { sendDonorOtpEmail } from '../services/email.service.js';
+import { sendDonorOtpEmail, sendRegisterOtpEmail } from '../services/email.service.js';
 
 function donorResetTarget(email) {
   return `donor-email:${String(email || '').trim().toLowerCase()}`;
+}
+
+function donorRegisterTarget(email) {
+  return `donor-register-email:${String(email || '').trim().toLowerCase()}`;
 }
 
 const GENERIC_DONOR_FORGOT = 'If an account exists, an OTP has been sent';
@@ -91,8 +95,9 @@ function escapeRegex(s) {
  * Legacy: { clerkToken } still accepted during transition (deprecated).
  */
 export const createDonor = asyncHandler(async (req, res) => {
-  const { mobile, clerkToken, supabaseAccessToken, supabaseToken, lat, lng, password, ...donorData } = req.body;
+  const { mobile, clerkToken, supabaseAccessToken, supabaseToken, code, emailOtpCode, lat, lng, password, ...donorData } = req.body;
   const supToken = String(supabaseAccessToken || supabaseToken || '').trim();
+  const backendCode = String(emailOtpCode || code || '').trim();
 
   if (!mobile) {
     return res.status(400).json({ message: 'mobile is required' });
@@ -106,8 +111,29 @@ export const createDonor = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'email is required' });
   }
 
-  if (supToken) {
-    // Supabase-only path (preferred) — email ownership proven by Supabase OTP.
+  if (backendCode) {
+    // Backend Gmail OTP path (primary — Supabase paused, SUPABASE-PENDING resume later).
+    const targetHash = hashValue(donorRegisterTarget(normalizedEmailEarly));
+    const doc = await Otp.findOne({
+      targetHash,
+      purpose: 'donor',
+      consumed: false,
+      expiresAt: { $gt: new Date() },
+    }).sort({ createdAt: -1 });
+    if (!doc) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+    if ((doc.attempts || 0) >= MAX_RESET_ATTEMPTS) {
+      return res.status(429).json({ message: 'Too many OTP attempts, request a new code' });
+    }
+    if (!verifyHash(backendCode, doc.codeHash)) {
+      await Otp.updateOne({ _id: doc._id }, { $inc: { attempts: 1 } });
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+    doc.consumed = true;
+    await doc.save();
+  } else if (supToken) {
+    // SUPABASE-PENDING: kept for later resume — email ownership proven by Supabase OTP.
     await verifySupabaseEmail(supToken, normalizedEmailEarly);
   } else if (clerkToken) {
     // DEPRECATED Clerk fallback (transition only) — will be removed.
@@ -155,9 +181,10 @@ export const createDonor = asyncHandler(async (req, res) => {
     passwordHash: await hashPassword(password),
     mobile: String(mobile).trim(),
     donorId: genDonorId(),
-    // Supabase-only: email is verified, phone is plain contact (not verified).
+    // Backend Gmail OTP or Supabase: email is verified, phone is plain contact.
     // Legacy Clerk path verified the phone instead.
-    mobileVerified: supToken ? false : true,
+    // SUPABASE-PENDING: supabase branch kept for later resume.
+    mobileVerified: supToken || backendCode ? false : true,
   }).catch((err) => {
     if (err?.code === 11000) {
       const e = new Error('Donor already exists');
@@ -244,6 +271,56 @@ export const listDonors = asyncHandler(async (req, res) => {
     total,
     totalPages: Math.max(1, Math.ceil(total / limit)),
   });
+});
+
+/**
+ * POST /api/donors/request-register-otp
+ * Body: { email } — backend Gmail OTP for register (Supabase paused).
+ * Existing email -> 409 clear (user chose 409). Cooldown + TTL same as forgot.
+ */
+export const requestRegisterOtp = asyncHandler(async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!email) {
+    return res.status(400).json({ message: 'email is required' });
+  }
+  const exists = await Donor.exists({ email });
+  if (exists) {
+    return res.status(409).json({ message: 'An account with this email already exists' });
+  }
+  const target = donorRegisterTarget(email);
+  const targetHash = hashValue(target);
+  const latest = await Otp.findOne({ targetHash, purpose: 'donor' }).sort({
+    createdAt: -1,
+  });
+  if (
+    latest &&
+    !latest.consumed &&
+    isOnCooldown(latest.createdAt, config.otp.cooldownSeconds)
+  ) {
+    return res.status(429).json({
+      message: `Please wait ${config.otp.cooldownSeconds}s before requesting another OTP`,
+    });
+  }
+  const code = genOtp();
+  await Otp.create({
+    purpose: 'donor',
+    targetHash,
+    codeHash: hashValue(code),
+    attempts: 0,
+    consumed: false,
+    expiresAt: otpExpiryDate(config.otp.ttlMinutes),
+  });
+  if (config.env !== 'production') {
+    console.log(`[OTP:register] ${target} -> ${code}`);
+  }
+  try {
+    await sendRegisterOtpEmail(email, code);
+  } catch (err) {
+    console.error('Register OTP email failed:', err?.message || err);
+    return res.status(502).json({ message: 'OTP send failed, please retry' });
+  }
+  logAudit(null, 'donor.request_register_otp', 'Donor', email, req);
+  return res.status(200).json({ message: 'OTP sent' });
 });
 
 /**

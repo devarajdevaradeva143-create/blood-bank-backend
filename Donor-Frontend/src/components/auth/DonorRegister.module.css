@@ -1,39 +1,25 @@
-/* ============ REGISTER PAGE WRAPPER (scroll venum, scrollbar vennam) ============ */
+/* ============ REGISTER PAGE WRAPPER (full-page joint scroll) ============ */
 
 .register-page {
   height: 100vh;
   height: 100dvh;
-  overflow: hidden;
-  /* parent-level-ku scrollbar vanthalum hide pannu (mobile fallback-ku) */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.register-page::-webkit-scrollbar {
-  display: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* left blood-bank panel (login-info) + right form serthu page-oda scroll aagum */
 }
 
 /* ============ RIGHT ============ */
 
 .register-section {
   width: 52%;
-  height: 100vh;
-  height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
   padding: 35px 50px;
   display: flex;
   justify-content: center;
-  /* flex-start + card margin auto = short-na center, tall-na top-la irundhu inner scroll (clipping illa) */
+  /* flex-start + card margin auto = short-na center, tall-na page-oda serthu scroll */
   align-items: flex-start;
   background: #f8fafc;
-  /* scrollbar irukathu, aana wheel/touch scroll work aagum */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.register-section::-webkit-scrollbar {
-  display: none;
 }
 
 :global(.dark) .register-section {
@@ -347,6 +333,9 @@
   background: transparent;
   cursor: pointer;
   padding: 0 13px;
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
   color: #94a3b8;
   display: flex;
   align-items: center;
@@ -554,7 +543,8 @@
 
 @media (max-width: 900px) {
   .register-page {
-    height: auto;
+    height: 100vh;
+    height: 100dvh;
     min-height: 100vh;
     min-height: 100dvh;
     overflow-y: auto;
@@ -565,8 +555,9 @@
     width: 100%;
     height: auto;
     min-height: auto;
+    flex-shrink: 0;
     overflow: visible;
-    padding: 30px 20px;
+    padding: 24px 20px 32px;
   }
 
   /* iOS auto-zoom prevent: focus pothu screen perusaagama irukkanum */
@@ -578,14 +569,18 @@
   }
 }
 
-@media (max-width: 650px) {
+@media (max-width: 700px) {
   .form-row {
     grid-template-columns: 1fr;
     gap: 0;
   }
 
   .register-card {
-    padding: 30px 22px;
+    padding: 28px 20px;
+  }
+
+  .register-section {
+    padding: 20px 14px 28px;
   }
 }
 

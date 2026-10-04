@@ -154,6 +154,7 @@ export const translations = {
     'map.googleLoading': 'Loading Google Maps…',
     'map.keyMissingTitle': 'Google Maps not configured',
     'map.keyMissing': 'Add VITE_GOOGLE_MAPS_KEY to .env, or switch back to OSM.',
+    'map.useOsm': 'Switch to OSM',
 
     'toast.copied': 'Request ID copied to clipboard',
     'toast.requestSubmitted': 'Blood request submitted successfully',
@@ -729,6 +730,7 @@ export const translations = {
     'map.googleLoading': 'Google Maps ஏற்றப்படுகிறது…',
     'map.keyMissingTitle': 'Google Maps அமைக்கப்படவில்லை',
     'map.keyMissing': '.env-ல் VITE_GOOGLE_MAPS_KEY சேர்க்கவும், அல்லது OSM-க்கு மாறவும்.',
+    'map.useOsm': 'OSM-க்கு மாறு',
 
     'toast.copied': 'கோரிக்கை எண் நகலெடுக்கப்பட்டது',
     'toast.requestSubmitted': 'இரத்த கோரிக்கை வெற்றிகரமாகச் சமர்ப்பிக்கப்பட்டது',
